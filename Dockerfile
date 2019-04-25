@@ -1,12 +1,21 @@
+ARG TARGET=x86_64-unknown-linux-musl
+
+
 FROM rustlang/rust:nightly-slim as builder
+
+RUN apt-get update && apt-get install -y musl-tools --no-install-recommends
 
 WORKDIR /usr/src/app
 
+ARG TARGET
+RUN rustup target add $TARGET
+
 COPY . .
 
-RUN cargo build --release
+RUN cargo build --release --target $TARGET
 
-FROM debian:stretch-slim
+
+FROM scratch
 
 # Service must listen to $PORT environment variable.
 # This default value facilitates local development.
@@ -15,6 +24,7 @@ ENV ROCKET_PORT $PORT
 
 WORKDIR /usr/bin
 
-COPY --from=builder /usr/src/app/target/release/helloworld-rust .
+ARG TARGET
+COPY --from=builder /usr/src/app/target/$TARGET/release/helloworld-rust .
 
 CMD ["helloworld-rust"]
